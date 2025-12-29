@@ -9,6 +9,7 @@ License: MIT
 """
 
 import sys
+import os
 import json
 import sqlite3
 from datetime import datetime
@@ -19,6 +20,13 @@ from typing import Optional, List, Dict, Tuple, Union, Generator
 import zipfile
 import shutil
 import queue
+import socket
+import argparse
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 # Server dependencies
 try:
@@ -33,8 +41,8 @@ except ImportError:
     SERVER_AVAILABLE = False
 
 # Configuration
-OLLAMA_HOST = "localhost"
-OLLAMA_PORT = 11434
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
+OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 DATA_DIR = Path(__file__).parent / "data"
 DB_PATH = DATA_DIR / "conversations.db"
 
@@ -1132,22 +1140,127 @@ if SERVER_AVAILABLE:
     async def root():
         server_buddai = buddai_manager.get_instance("default")
         status = server_buddai.get_user_status()
+        
+        # System Stats
+        mem_usage = "N/A"
+        if psutil:
+            process = psutil.Process(os.getpid())
+            mem_usage = f"{process.memory_info().rss / 1024 / 1024:.0f} MB"
+            
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sessions")
+        total_sessions = cursor.fetchone()[0]
+        conn.close()
+
         return f"""
         <html>
             <head>
                 <title>BuddAI API</title>
                 <link rel="icon" href="/favicon.ico">
                 <style>
-                    body {{ background-color: #111; color: #fff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
-                    img {{ width: 150px; margin-bottom: 1rem; }}
-                    a {{ color: #f39c12; }}
+                    body {{ 
+                        background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); 
+                        color: #e0e0e0; 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        justify-content: center; 
+                        height: 100vh; 
+                        margin: 0; 
+                    }}
+                    .dashboard {{
+                        display: flex;
+                        gap: 15px;
+                        margin: 20px 0;
+                        width: 100%;
+                        justify-content: center;
+                    }}
+                    .stat-card {{
+                        background: rgba(255, 255, 255, 0.05);
+                        padding: 15px;
+                        border-radius: 10px;
+                        min-width: 80px;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                    }}
+                    .stat-value {{
+                        display: block;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                        color: #fff;
+                    }}
+                    .stat-label {{
+                        font-size: 0.8em;
+                        color: #888;
+                    }}
+                    .container {{
+                        text-align: center;
+                        background: rgba(255, 255, 255, 0.03);
+                        padding: 40px;
+                        border-radius: 16px;
+                        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+                        backdrop-filter: blur(5px);
+                        border: 1px solid rgba(255, 255, 255, 0.05);
+                        max-width: 400px;
+                        width: 90%;
+                    }}
+                    img {{ 
+                        width: 120px; 
+                        margin-bottom: 1.5rem; 
+                        filter: drop-shadow(0 0 15px rgba(255, 152, 0, 0.3));
+                        animation: float 6s ease-in-out infinite;
+                    }}
+                    h1 {{ margin: 0 0 10px 0; font-weight: 600; letter-spacing: 0.5px; color: #fff; }}
+                    p {{ margin: 10px 0; color: #888; font-size: 0.95em; }}
+                    strong {{ color: #ddd; }}
+                    .links {{ margin-top: 30px; display: flex; gap: 15px; justify-content: center; }}
+                    a {{ 
+                        text-decoration: none; 
+                        color: #fff; 
+                        background: #0e639c; 
+                        padding: 10px 20px; 
+                        border-radius: 6px; 
+                        transition: all 0.2s; 
+                        font-weight: 600;
+                        font-size: 0.9em;
+                    }}
+                    a:hover {{ background: #1177bb; transform: translateY(-2px); }}
+                    a.secondary {{ background: transparent; border: 1px solid #444; color: #ccc; }}
+                    a.secondary:hover {{ background: #333; border-color: #666; color: #fff; }}
+                    
+                    @keyframes float {{
+                        0% {{ transform: translateY(0px); }}
+                        50% {{ transform: translateY(-10px); }}
+                        100% {{ transform: translateY(0px); }}
+                    }}
                 </style>
             </head>
             <body>
-                <img src="/favicon.ico" alt="BuddAI">
-                <h1>BuddAI API Online</h1>
-                <p>Current Mode: <strong>{status}</strong></p>
-                <p>Visit <a href="/web">/web</a> or <a href="/docs">/docs</a></p>
+                <div class="container">
+                    <img src="/favicon.ico" alt="BuddAI">
+                    <h1>BuddAI API</h1>
+                    <p>Status: <span style="color: #4caf50; font-weight: bold;">● Online</span></p>
+                    <p>Context: <strong>{status}</strong></p>
+                    <div class="dashboard">
+                        <div class="stat-card">
+                            <span class="stat-value">{mem_usage}</span>
+                            <span class="stat-label">Memory</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">{total_sessions}</span>
+                            <span class="stat-label">Sessions</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">{len(buddai_manager.instances)}</span>
+                            <span class="stat-label">Active Users</span>
+                        </div>
+                    </div>
+                    <div class="links">
+                        <a href="/web">Launch Web UI</a>
+                        <a href="/docs" class="secondary">API Docs</a>
+                    </div>
+                </div>
             </body>
         </html>
         """
@@ -1178,7 +1291,7 @@ if SERVER_AVAILABLE:
             raise ValueError(f"File too large (Limit: {MAX_FILE_SIZE//1024//1024}MB)")
             
         # Magic number check for ZIPs
-        if file.filename.endswith('.zip'):
+        if file.filename.lower().endswith('.zip'):
             header = file.file.read(4)
             file.file.seek(0)
             if header != b'PK\x03\x04':
@@ -1295,7 +1408,7 @@ if SERVER_AVAILABLE:
             with open(file_location, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
                 
-            if safe_name.endswith(".zip"):
+            if safe_name.lower().endswith(".zip"):
                 extract_path = uploads_dir / file_location.stem
                 extract_path.mkdir(exist_ok=True)
                 safe_extract_zip(file_location, extract_path)
@@ -1304,7 +1417,7 @@ if SERVER_AVAILABLE:
                 return {"message": f"✅ Successfully indexed {safe_name}"}
             else:
                 # Support single code files by moving them to a folder and indexing
-                if file_location.suffix in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+                if file_location.suffix.lower() in ['.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
                     target_dir = uploads_dir / file_location.stem
                     target_dir.mkdir(exist_ok=True)
                     final_path = target_dir / safe_name
@@ -1326,16 +1439,40 @@ def check_ollama() -> bool:
     except:
         return False
 
+def is_port_available(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('0.0.0.0', port))
+            return True
+        except socket.error:
+            return False
 
 def main() -> None:
     if not check_ollama():
         print("❌ Ollama not running. Start: ollama serve")
         sys.exit(1)
-        
-    if len(sys.argv) > 1 and sys.argv[1] == "--server":
+    
+    parser = argparse.ArgumentParser(description="BuddAI Executive")
+    parser.add_argument("--server", action="store_true", help="Run in server mode")
+    parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
+    args = parser.parse_args()
+
+    if args.server:
         if SERVER_AVAILABLE:
-            print("🚀 Starting BuddAI API Server on port 8000...")
-            uvicorn.run(app, host="0.0.0.0", port=8000)
+            port = args.port
+            if not is_port_available(port):
+                print(f"⚠️ Port {port} is in use.")
+                for i in range(1, 11):
+                    if is_port_available(port + i):
+                        port += i
+                        print(f"🔄 Switching to available port: {port}")
+                        break
+                else:
+                    print(f"❌ Could not find available port in range {args.port}-{args.port+10}")
+                    sys.exit(1)
+            
+            print(f"🚀 Starting BuddAI API Server on port {port}...")
+            uvicorn.run(app, host="0.0.0.0", port=port)
         else:
             print("❌ Server dependencies missing. Install: pip install fastapi uvicorn aiofiles python-multipart")
     else:
