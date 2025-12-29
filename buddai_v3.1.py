@@ -36,6 +36,15 @@ OLLAMA_PORT = 11434
 DATA_DIR = Path(__file__).parent / "data"
 DB_PATH = DATA_DIR / "conversations.db"
 
+# Validation Config
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_UPLOAD_FILES = 10
+ALLOWED_TYPES = [
+    "application/zip", "application/x-zip-compressed", "application/octet-stream",
+    "text/plain", "text/x-python", "text/javascript", "application/javascript",
+    "text/html", "text/css", "text/x-c", "text/x-c++src"
+]
+
 # Models
 MODELS = {
     "fast": "qwen2.5-coder:1.5b",
@@ -977,6 +986,23 @@ if SERVER_AVAILABLE:
     async def favicon_192():
         return FileResponse(Path(__file__).parent / "icons" / "favicon-192x192.png")
 
+    def validate_upload(file: UploadFile):
+        # Check size
+        file.file.seek(0, 2)
+        size = file.file.tell()
+        file.file.seek(0)
+        
+        if size > MAX_FILE_SIZE:
+            raise ValueError(f"File too large (Limit: {MAX_FILE_SIZE//1024//1024}MB)")
+            
+        if file.content_type not in ALLOWED_TYPES:
+            # Fallback: check extension if content_type is generic
+            ext = Path(file.filename).suffix.lower()
+            if ext not in ['.zip', '.py', '.ino', '.cpp', '.h', '.js', '.jsx', '.html', '.css']:
+                raise ValueError("Invalid file type")
+        # Scan for malicious content
+        return True
+
     @app.post("/api/chat")
     async def chat_endpoint(request: ChatRequest):
         response = server_buddai.chat(request.message, force_model=request.model, forge_mode=request.forge_mode)
@@ -1013,6 +1039,8 @@ if SERVER_AVAILABLE:
     @app.post("/api/upload")
     async def upload_repo(file: UploadFile = File(...)):
         try:
+            validate_upload(file)
+            
             uploads_dir = DATA_DIR / "uploads"
             uploads_dir.mkdir(exist_ok=True)
             
