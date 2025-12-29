@@ -275,10 +275,16 @@ class BuddAI:
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
                 started_at TIMESTAMP,
-                ended_at TIMESTAMP
+                ended_at TIMESTAMP,
+                title TEXT
             )
         """)
         
+        try:
+            cursor.execute("ALTER TABLE sessions ADD COLUMN title TEXT")
+        except sqlite3.OperationalError:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -799,10 +805,27 @@ float applyForge(float current, float target, float k) {{ return target + (curre
         """Retrieve recent sessions from DB"""
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT session_id, started_at FROM sessions ORDER BY started_at DESC LIMIT ?", (limit,))
+        cursor.execute("SELECT session_id, started_at, title FROM sessions ORDER BY started_at DESC LIMIT ?", (limit,))
         rows = cursor.fetchall()
         conn.close()
-        return [{"id": r[0], "date": r[1]} for r in rows]
+        return [{"id": r[0], "date": r[1], "title": r[2]} for r in rows]
+
+    def rename_session(self, session_id, new_title):
+        """Rename a session"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE sessions SET title = ? WHERE session_id = ?", (new_title, session_id))
+        conn.commit()
+        conn.close()
+
+    def delete_session(self, session_id):
+        """Delete a session and its messages"""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        conn.commit()
+        conn.close()
 
     def load_session(self, session_id):
         """Load a specific session context"""
@@ -900,6 +923,13 @@ if SERVER_AVAILABLE:
     class SessionLoadRequest(BaseModel):
         session_id: str
 
+    class SessionRenameRequest(BaseModel):
+        session_id: str
+        title: str
+
+    class SessionDeleteRequest(BaseModel):
+        session_id: str
+
     # Initialize server instance
     server_buddai = BuddAI(server_mode=True)
 
@@ -952,6 +982,16 @@ if SERVER_AVAILABLE:
     async def load_session_endpoint(req: SessionLoadRequest):
         history = server_buddai.load_session(req.session_id)
         return {"history": history, "session_id": req.session_id}
+
+    @app.post("/api/session/rename")
+    async def rename_session_endpoint(req: SessionRenameRequest):
+        server_buddai.rename_session(req.session_id, req.title)
+        return {"status": "success"}
+
+    @app.post("/api/session/delete")
+    async def delete_session_endpoint(req: SessionDeleteRequest):
+        server_buddai.delete_session(req.session_id)
+        return {"status": "success"}
 
     @app.post("/api/session/new")
     async def new_session_endpoint():
