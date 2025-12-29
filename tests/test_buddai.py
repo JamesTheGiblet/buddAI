@@ -18,6 +18,7 @@ from datetime import datetime
 import os
 import io
 import zipfile
+import http.client
 
 # Dynamic import of buddai_v3.2.py
 REPO_ROOT = Path(__file__).parent.parent
@@ -866,6 +867,61 @@ def test_websocket_logic():
             
     return True
 
+# Test 19: Connection Pooling
+def test_connection_pool():
+    print_test("Connection Pooling")
+    
+    if not hasattr(buddai_module, 'OLLAMA_POOL'):
+        print_fail("OLLAMA_POOL not found in module")
+        return False
+        
+    pool = buddai_module.OLLAMA_POOL
+    
+    # Drain pool first to ensure clean state for test
+    while not pool.pool.empty():
+        try:
+            c = pool.pool.get_nowait()
+            c.close()
+        except:
+            break
+            
+    # 1. Get a connection (should create new)
+    conn1 = pool.get_connection()
+    if not isinstance(conn1, http.client.HTTPConnection):
+        print_fail("get_connection did not return HTTPConnection")
+        return False
+    print_pass("Successfully retrieved connection from pool")
+
+    # 2. Return connection
+    pool.return_connection(conn1)
+    if pool.pool.qsize() == 1:
+        print_pass("Connection returned to pool (size=1)")
+    else:
+        print_fail(f"Pool size incorrect after return. Expected 1, got {pool.pool.qsize()}")
+        return False
+        
+    # 3. Reuse connection
+    conn2 = pool.get_connection()
+    if conn2 is conn1:
+        print_pass("Pool reused the existing connection object")
+    else:
+        print_fail("Pool created new connection instead of reusing")
+        return False
+        
+    # 4. Overflow handling
+    # Fill beyond max size (default 10)
+    # conn2 is currently checked out, so pool is empty
+    for _ in range(15):
+        c = http.client.HTTPConnection("localhost", 11434)
+        pool.return_connection(c)
+    
+    if pool.pool.full():
+        print_pass("Pool capped at max size, excess connections discarded")
+        return True
+    else:
+        print_fail(f"Pool overflow handling failed. Size: {pool.pool.qsize()}")
+        return False
+
 # Main Test Runner
 def run_all_tests():
     print("\n" + "="*60)
@@ -891,6 +947,7 @@ def run_all_tests():
         ("Repository Isolation", test_repo_isolation),
         ("Upload Security", test_upload_security),
         ("WebSocket Logic", test_websocket_logic),
+        ("Connection Pooling", test_connection_pool),
     ]
     
     results = []
