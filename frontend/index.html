@@ -112,6 +112,41 @@
         }
         .loading-flame { font-size: 24px; animation: flame-flicker 0.6s infinite; display: inline-block; }
         .hljs { background: transparent !important; padding: 0 !important; }
+        
+        /* Eyes */
+        .eyes-container { display: flex; gap: 4px; margin-right: 12px; }
+        .eye { width: 14px; height: 14px; background: #d4d4d4; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #1e1e1e; }
+        .pupil { width: 6px; height: 6px; background: var(--btn-bg); border-radius: 50%; }
+        
+        /* Sleep Zzz */
+        .zzz-container { position: absolute; top: -15px; right: -8px; pointer-events: none; }
+        .zzz { position: absolute; font-family: 'Comic Sans MS', cursive, sans-serif; font-weight: bold; color: #aaa; opacity: 0; animation: float-z 2.5s infinite; }
+        .zzz:nth-child(1) { animation-delay: 0s; font-size: 10px; right: 5px; }
+        .zzz:nth-child(2) { animation-delay: 0.8s; font-size: 14px; right: 0px; }
+        .zzz:nth-child(3) { animation-delay: 1.6s; font-size: 18px; right: -5px; }
+        
+        @keyframes float-z {
+            0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; }
+            25% { opacity: 0.8; }
+            100% { transform: translate(10px, -20px) rotate(10deg); opacity: 0; }
+        }
+        
+        @keyframes shake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-2px, 1px) rotate(-5deg); }
+            50% { transform: translate(2px, -1px) rotate(5deg); }
+            75% { transform: translate(-1px, 2px) rotate(-2deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .shake { animation: shake 0.5s ease-in-out; }
+        
+        @keyframes confused {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-3px, 1px); }
+            50% { transform: translate(1px, -3px); }
+            75% { transform: translate(3px, 2px); }
+            100% { transform: translate(0, 0); }
+        }
     </style>
 </head>
 <body>
@@ -198,6 +233,166 @@
 
         const { useState, useEffect, useRef } = React;
 
+        const Eyes = ({ status, targetPos, loading, confused, happy }) => {
+            const [pupilPos, setPupilPos] = useState({ x: 0, y: 0 });
+            const [isBlinking, setIsBlinking] = useState(false);
+            const [isSleeping, setIsSleeping] = useState(false);
+            const [isShaking, setIsShaking] = useState(false);
+            const eyesRef = useRef(null);
+            const lastActivityRef = useRef(Date.now());
+            const ignoreWakeRef = useRef(false);
+
+            useEffect(() => {
+                const checkSleep = setInterval(() => {
+                    if (Date.now() - lastActivityRef.current > 5000 && !loading && status === 'online') {
+                        setIsSleeping(true);
+                    }
+                }, 1000);
+                return () => clearInterval(checkSleep);
+            }, [loading, status]);
+
+            useEffect(() => {
+                if (!isSleeping) {
+                    setIsShaking(true);
+                    const t = setTimeout(() => setIsShaking(false), 500);
+                    return () => clearTimeout(t);
+                }
+            }, [isSleeping]);
+
+            useEffect(() => {
+                let timeout;
+                const blink = () => {
+                    setIsBlinking(true);
+                    setTimeout(() => setIsBlinking(false), 150);
+                    timeout = setTimeout(blink, Math.random() * 4000 + 2000);
+                };
+                timeout = setTimeout(blink, 3000);
+                return () => clearTimeout(timeout);
+            }, []);
+
+            useEffect(() => {
+                if (loading) {
+                    lastActivityRef.current = Date.now();
+                    setIsSleeping(false);
+                    const interval = setInterval(() => {
+                        const t = Date.now() / 100;
+                        setPupilPos({
+                            x: Math.sin(t) * 2.5,
+                            y: Math.sin(t * 2) * 1
+                        });
+                    }, 20);
+                    return () => clearInterval(interval);
+                }
+
+                const updateEyePosition = (targetX, targetY) => {
+                    if (!eyesRef.current) return;
+                    const rekt = eyesRef.current.getBoundingClientRect();
+                    const anchorX = rekt.left + rekt.width / 2;
+                    const anchorY = rekt.top + rekt.height / 2;
+                    
+                    const angle = Math.atan2(targetY - anchorY, targetX - anchorX);
+                    const radius = 3; 
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    
+                    setPupilPos({ x, y });
+                };
+
+                if (targetPos) {
+                    lastActivityRef.current = Date.now();
+                    setIsSleeping(false);
+                    updateEyePosition(targetPos.x, targetPos.y);
+                    return;
+                }
+
+                const handleMouseMove = (e) => {
+                    if (ignoreWakeRef.current) return;
+                    lastActivityRef.current = Date.now();
+                    setIsSleeping(false);
+                    updateEyePosition(e.clientX, e.clientY);
+                };
+                window.addEventListener('mousemove', handleMouseMove);
+                return () => window.removeEventListener('mousemove', handleMouseMove);
+            }, [targetPos, loading]);
+
+            const pupilStyle = { transform: `translate(${pupilPos.x}px, ${pupilPos.y}px)`, background: status === 'offline' ? '#ff4444' : undefined, boxShadow: status === 'offline' ? '0 0 4px #ff0000' : undefined };
+            
+            // Confused overrides
+            const leftPupilStyle = confused ? { ...pupilStyle, transform: 'none', animation: 'confused 1s infinite reverse' } : pupilStyle;
+            const rightPupilStyle = confused ? { ...pupilStyle, transform: 'none', animation: 'confused 1.2s infinite' } : pupilStyle;
+            
+            // Happy overrides (squint)
+            const eyeTransform = (isBlinking || isSleeping) ? 'scaleY(0.1)' : (happy ? 'scaleY(0.45)' : 'scaleY(1)');
+            
+            const toggleSleep = (e) => {
+                e.stopPropagation();
+                if (isSleeping) {
+                    setIsSleeping(false);
+                    lastActivityRef.current = Date.now();
+                } else {
+                    setIsSleeping(true);
+                    ignoreWakeRef.current = true;
+                    setTimeout(() => { ignoreWakeRef.current = false; }, 1000);
+                }
+            };
+
+            return (
+                <div ref={eyesRef} className={`eyes-container ${isShaking ? 'shake' : ''}`} title="BuddAI is watching (Click to sleep/wake)" style={{position: 'relative', cursor: 'pointer'}} onClick={toggleSleep}>
+                    {isSleeping && (
+                        <div className="zzz-container">
+                            <div className="zzz">z</div>
+                            <div className="zzz">z</div>
+                            <div className="zzz">z</div>
+                        </div>
+                    )}
+                    <div className="eye" style={{ transform: eyeTransform, transition: 'transform 0.1s' }}><div className="pupil" style={leftPupilStyle} /></div>
+                    <div className="eye" style={{ transform: eyeTransform, transition: 'transform 0.1s' }}><div className="pupil" style={rightPupilStyle} /></div>
+                </div>
+            );
+        };
+
+        const SystemHealth = () => {
+            const [stats, setStats] = useState({ memory: 0, cpu: 0 });
+            
+            useEffect(() => {
+                const fetchStats = async () => {
+                    try {
+                        const res = await fetch("/api/system/status");
+                        if (res.ok) {
+                            const data = await res.json();
+                            setStats(data);
+                        }
+                    } catch (e) {}
+                };
+                fetchStats();
+                const interval = setInterval(fetchStats, 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const getColor = (val) => {
+                if (val < 60) return '#4caf50';
+                if (val < 85) return '#ff9800';
+                return '#f44336';
+            };
+
+            return (
+                <div style={{display: 'flex', flexDirection: 'column', gap: '2px', width: '100px', marginRight: '15px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', fontSize: '0.7em', color: '#888'}}>
+                        <span style={{width: '30px'}}>RAM</span>
+                        <div style={{flex: 1, height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden'}}>
+                            <div style={{width: `${stats.memory}%`, height: '100%', background: getColor(stats.memory), transition: 'width 0.5s'}}></div>
+                        </div>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', fontSize: '0.7em', color: '#888'}}>
+                        <span style={{width: '30px'}}>CPU</span>
+                        <div style={{flex: 1, height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden'}}>
+                            <div style={{width: `${stats.cpu}%`, height: '100%', background: getColor(stats.cpu), transition: 'width 0.5s'}}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const [history, setHistory] = useState([]);
             const [sessions, setSessions] = useState([]);
@@ -208,11 +403,15 @@
             const [feedbackGiven, setFeedbackGiven] = useState({});
             const [input, setInput] = useState("");
             const [loading, setLoading] = useState(false);
+            const [isConfused, setIsConfused] = useState(false);
+            const [isHappy, setIsHappy] = useState(false);
             const [status, setStatus] = useState("connecting");
             const [forgeMode, setForgeMode] = useState("2");
             const [theme, setTheme] = useState("dark");
             const [sidebarContent, setSidebarContent] = useState("");
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [caretPos, setCaretPos] = useState(null);
+            const inputRef = useRef(null);
             const endRef = useRef(null);
             const abortControllerRef = useRef(null);
             const socketRef = useRef(null);
@@ -387,6 +586,7 @@
                                 const lastMsg = newHistory[newHistory.length - 1];
                                 if (lastMsg && lastMsg.role === 'assistant') {
                                     lastMsg.id = data.message_id;
+                                    if (!lastMsg.content) lastMsg.content = "*(No response received - Check Ollama connection)*";
                                 }
                                 return newHistory;
                             });
@@ -447,11 +647,48 @@
                 return { text, suggestions };
             };
 
+            const updateCaret = () => {
+                const el = inputRef.current;
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const style = window.getComputedStyle(el);
+                const div = document.createElement('div');
+                div.style.font = style.font;
+                div.style.padding = style.padding;
+                div.style.border = style.border;
+                div.style.fontWeight = style.fontWeight;
+                div.style.fontSize = style.fontSize;
+                div.style.fontFamily = style.fontFamily;
+                div.style.position = 'absolute';
+                div.style.visibility = 'hidden';
+                div.style.whiteSpace = 'pre';
+                div.textContent = el.value.substring(0, el.selectionStart);
+                document.body.appendChild(div);
+                const textWidth = div.getBoundingClientRect().width;
+                document.body.removeChild(div);
+                
+                const paddingLeft = parseFloat(style.paddingLeft) || 0;
+                const x = rect.left + paddingLeft + textWidth - el.scrollLeft;
+                const y = rect.top + (rect.height / 2);
+                setCaretPos({ x, y });
+            };
+
+            const handleResetGpu = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch("/api/system/reset-gpu", { method: "POST" });
+                    const data = await res.json();
+                    setHistory(prev => [...prev, { role: "assistant", content: data.message }]);
+                } catch (e) { console.error(e); }
+                setLoading(false);
+            };
+
             return (
                 <>
                     <div className="header">
                         <div style={{display:'flex', alignItems:'center'}}>
-                            <img src="/favicon.ico" alt="BuddAI" style={{height: '24px', marginRight: '10px'}} />
+                            <SystemHealth />
+                            <Eyes status={status} targetPos={caretPos} loading={loading} confused={isConfused} happy={isHappy} />
                             <h3 style={{margin:0}}>BuddAI v3.2</h3>
                             <span className={`status-badge ${status}`}>{status}</span>
                         </div>
@@ -466,6 +703,7 @@
                             <button className="clear-btn" onClick={() => setShowSidebar(!showSidebar)}>{showSidebar ? 'Hide History' : 'Show History'}</button>
                             <button className="clear-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>{isSidebarOpen ? 'Hide Code' : 'Show Code'}</button>
                             <button className="clear-btn" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+                            <button className="clear-btn" onClick={handleResetGpu} title="Unload models from VRAM">⚡ Reset GPU</button>
                             <select 
                                 value={forgeMode} 
                                 onChange={(e) => setForgeMode(e.target.value)}
@@ -554,9 +792,20 @@
                     </div>
                     <div className="input-area">
                         <input 
+                            ref={inputRef}
                             value={input} 
-                            onChange={e => setInput(e.target.value)}
+                            onChange={e => { 
+                                const val = e.target.value;
+                                setInput(val); 
+                                setIsConfused(val.includes('???')); 
+                                setIsHappy(val.toLowerCase().includes('thanks') || val.toLowerCase().includes('thx'));
+                                setTimeout(updateCaret, 0); 
+                            }}
                             onKeyPress={e => e.key === 'Enter' && sendMessage()}
+                            onKeyUp={updateCaret}
+                            onClick={updateCaret}
+                            onFocus={updateCaret}
+                            onBlur={() => setCaretPos(null)}
                             placeholder="Ask BuddAI to build something..."
                             autoFocus
                         />

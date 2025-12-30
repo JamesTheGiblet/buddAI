@@ -1,6 +1,8 @@
-fastapi>=0.68.0
-uvicorn>=0.15.0
-python-multipart>=0.0.5
-psutil>=5.8.0
-aiofiles>=0.7.0
-requests>=2.26.0
+fastapi
+uvicorn[standard]
+python-multipart
+psutil
+aiofiles
+websockets
+qrcode
+pillow
