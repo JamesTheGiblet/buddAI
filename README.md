@@ -546,6 +546,13 @@ Breaking into 4 manageable steps...
 /balanced      # Force BALANCED model for next response
 /index <path>  # Index local repositories (NEW in v3.2)
 /scan          # Scan style signature from repos (NEW in v3.2)
+/correct <reason> # Mark previous response wrong & learn
+/good             # Mark previous response correct
+/teach <rule>     # Explicitly teach a coding rule
+/rules            # Show learned rules
+/metrics          # Show improvement stats
+/validate         # Run validation checks
+/train            # Export corrections for fine-tuning
 /help          # Show commands
 exit           # End session
 ```
