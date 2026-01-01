@@ -4,6 +4,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple, Union, Generator
 
+from buddai_shared import DB_PATH
+
 class CodeValidator:
     """Validate generated code before showing to user"""
     

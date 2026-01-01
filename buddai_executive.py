@@ -133,7 +133,7 @@ class BuddAI:
         self.metrics = LearningMetrics()
         self.fine_tuner = ModelFineTuner()
         
-        print("BuddAI Executive v3.8 - Multi-User & Fine-Tuning Ready")
+        print("BuddAI Executive v4.0 - Decoupled & Personality Sync")
         print("=" * 50)
         print(f"Session: {self.session_id}")
         print(f"FAST (5-10s) | BALANCED (15-30s)")
