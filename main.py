@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BuddAI v3.8 - Modular Executive Entry Point
+BuddAI v4.0 - Modular Executive Entry Point
 Author: James Gilbert
 """
 
@@ -47,7 +47,7 @@ def main():
         print(f"❌ Ollama not running at {OLLAMA_HOST}:{OLLAMA_PORT}. Wake it up first!")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description="BuddAI Executive v3.8")
+    parser = argparse.ArgumentParser(description="BuddAI Executive v4.0")
     parser.add_argument("--server", action="store_true", help="Run in server mode")
     parser.add_argument("--port", type=int, default=8000, help="Port for server mode")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
