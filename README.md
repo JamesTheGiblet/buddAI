@@ -6,6 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: PRODUCTION](https://img.shields.io/badge/Status-PRODUCTION-green.svg)](https://github.com/JamesTheGiblet/BuddAI)
 [![Version: v3.2](https://img.shields.io/badge/Version-v3.2-blue.svg)](https://github.com/JamesTheGiblet/BuddAI/releases)
+[![Version: v3.8](https://img.shields.io/badge/Version-v3.8-blue.svg)](https://github.com/JamesTheGiblet/BuddAI/releases)
 [![Tests: 24/24](https://img.shields.io/badge/Tests-24%2F24%20Passing-brightgreen.svg)](https://github.com/JamesTheGiblet/BuddAI/actions)
 
 ---
@@ -40,9 +41,19 @@
 - Added connection pooling
 - **Milestone 6 Complete:** Production Hardening ✓
 
+**Day 4+ (January 2026):**
+
+- Implemented **Code Validator** with Auto-Fix engine
+- Added **Smart Learner** to extract rules from corrections
+- Integrated **Forge Theory** with interactive tuning
+- Validated with 14-hour test suite (90% accuracy)
+- **Milestone 7 Complete:** Self-Learning & Validation ✓
+
 ---
 
 ### Result: BuddAI v3.2 - Hardened Modular Builder
+
+### Result: BuddAI v3.8 - Self-Learning Modular Builder
 
 ✅ Remembers conversations across sessions  
 ✅ Routes to appropriate models automatically  
@@ -50,19 +61,27 @@
 ✅ **Indexes and searches your 115+ repositories**  
 ✅ **Learns your coding style patterns**  
 ✅ **Proactively suggests missing components**  
+✅ **Auto-corrects code errors before you see them**  
 ✅ **Beautiful web interface with live workspace**  
 ✅ **Schedule-aware responses**  
+✅ **Interactive Forge Theory tuning**  
 ✅ Generates complete, working code  
 ✅ Works on slow hardware (8GB RAM)  
 ✅ **Built in <2 weeks with $0 spent**
 
 **v3.2 New Capabilities:**
+**v3.8 New Capabilities:**
 
 - ✅ **WebSocket streaming** (real-time token-by-token responses)
 - ✅ **Multi-user support** (session isolation per user)
 - ✅ **Connection pooling** (faster Ollama communication)
 - ✅ **Upload security** (file size limits, type validation, zip slip protection)
 - ✅ **Type hints** (improved code quality and IDE support)
+- ✅ **Auto-Fix Engine** (detects and fixes safety timeouts, state machines)
+- ✅ **Smart Learner** (extracts rules from your corrections)
+- ✅ **Validation Suite** (checks PWM, ADC, pins against hardware rules)
+- ✅ **Forge Theory Mode** (Aggressive/Balanced/Graceful physics)
+- ✅ **Learning Metrics** (tracks accuracy improvement over time)
 
 ---
 
@@ -95,6 +114,8 @@ BuddAI is a **personal IP AI exocortex** - an external cognitive system that ext
 **Not a chatbot. Not an assistant. A cognitive extension.**
 
 ### What It Actually Does (v3.2)
+
+### What It Actually Does (v3.8)
 
 **Simple Questions (5-10 seconds):**
 
@@ -187,6 +208,8 @@ BuddAI: 🎯 COMPLEX REQUEST DETECTED!
 
 ### 🎯 Current Capabilities (v3.2)
 
+### 🎯 Current Capabilities (v3.8)
+
 **Core Features:**
 
 - ✅ Generate complete robot controllers
@@ -197,17 +220,22 @@ BuddAI: 🎯 COMPLEX REQUEST DETECTED!
 - ✅ Work on slow hardware (8GB RAM)
 
 **v3.2 New Capabilities:**
+**v3.8 New Capabilities:**
 
 - ✅ **Search indexed repositories with natural language**
 - ✅ **Upload and index code via web interface**
 - ✅ **Style signature scanning and application**
 - ✅ **Shadow suggestion engine** (proactive module suggestions)
 - ✅ **Schedule awareness** (knows your work/build cycles)
+- ✅ **Auto-Fix Engine** (corrects errors automatically)
+- ✅ **Smart Learner** (extracts patterns from corrections)
+- ✅ **Validation Report** (90% accuracy across 10-question suite)
 - ✅ **Forge Theory mode selector** (Aggressive/Balanced/Graceful)
 - ✅ **Session management** (rename/delete in web UI)
 - ✅ **Live code workspace** sidebar with syntax highlighting
 - ✅ **Dark/Light theme** toggle
 - ✅ **Actionable suggestion pills** (click to apply)
+- ✅ **Learning Metrics** (track improvement)
 - ✅ **Real-time status** indicators
 
 ### 🔄 In Progress
@@ -223,6 +251,15 @@ BuddAI: 🎯 COMPLEX REQUEST DETECTED!
 - Comprehensive integration tests
 
 **Timeline:** Completed
+**Milestone 7: Self-Learning & Validation**
+**Status:** ✅ COMPLETE (v3.8)
+
+- Code Validator with Auto-Fix
+- Smart Learner (correction analysis)
+- Forge Theory integration
+- 14-hour validation suite passed
+
+**Timeline:** Completed (Jan 2026)
 
 ### 🔮 Future Vision
 
@@ -275,6 +312,8 @@ BuddAI: 🎯 COMPLEX REQUEST DETECTED!
 ## How BuddAI Works
 
 ### Architecture (v3.2)
+
+### Architecture (v3.8)
 
 ```
 ┌─────────────────────────────────────────┐
